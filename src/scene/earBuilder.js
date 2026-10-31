@@ -765,17 +765,49 @@ export function buildMiddleEarDiorama({ earSide = 'right', textures }) {
       tm_pars_tensa: []
     };
 
+    const foldApexX = sx * 0.35;
+    const foldApexY = 3.22;
+    const foldRimAX = drumCenterX + Math.cos(Math.PI * 0.36) * drumRx;
+    const foldRimAY = drumCenterY + Math.sin(Math.PI * 0.36) * drumRy;
+    const foldRimPX = drumCenterX + Math.cos(Math.PI * 0.64) * drumRx;
+    const foldRimPY = drumCenterY + Math.sin(Math.PI * 0.64) * drumRy;
+
     for (let ir = 0; ir < ringSegs; ir++) {
       const tMid = (ir + 0.5) / ringSegs;
       for (let ia = 0; ia < radialSegs; ia++) {
         const midAng = ((ia + 0.5) / radialSegs) * Math.PI * 2;
+        const rimMidX = drumCenterX + Math.cos(midAng) * drumRx;
+        const rimMidY = drumCenterY + Math.sin(midAng) * drumRy;
+        const wxMid = THREE.MathUtils.lerp(umboWorld.x, rimMidX, tMid);
+        const wyMid = THREE.MathUtils.lerp(umboWorld.y, rimMidY, tMid);
+
+        // Exact Y of the Anterior/Posterior Mallear Fold line at wxMid
+        let foldBoundaryY = Infinity;
+        if (midAng >= Math.PI * 0.35 && midAng <= Math.PI * 0.65) {
+          if (wxMid >= foldApexX) {
+            const uFold = THREE.MathUtils.clamp(
+              (wxMid - foldApexX) / Math.max(0.01, foldRimAX - foldApexX),
+              0,
+              1
+            );
+            foldBoundaryY = THREE.MathUtils.lerp(foldApexY, foldRimAY, uFold);
+          } else {
+            const uFold = THREE.MathUtils.clamp(
+              (wxMid - foldApexX) / Math.min(-0.01, foldRimPX - foldApexX),
+              0,
+              1
+            );
+            foldBoundaryY = THREE.MathUtils.lerp(foldApexY, foldRimPY, uFold);
+          }
+        }
+
         // Exact canvas angle matching proceduralMaterials.js Cone of Light arc [0.35, 0.92]
         const canvasAng = Math.atan2(-Math.sin(midAng), Math.cos(midAng) * sx);
 
         let bucket = 'tm_pars_tensa';
         if (ir < 4) {
           bucket = 'tm_umbo';
-        } else if (tMid > 0.45 && midAng >= Math.PI * 0.36 && midAng <= Math.PI * 0.64) {
+        } else if (wyMid >= foldBoundaryY - 0.05) {
           bucket = 'tm_pars_flaccida';
         } else if (canvasAng >= 0.34 && canvasAng <= 0.93) {
           bucket = 'tm_cone_of_light';
@@ -789,7 +821,7 @@ export function buildMiddleEarDiorama({ earSide = 'right', textures }) {
 
     const regionAnchors = {
       tm_umbo: new THREE.Vector3(umboWorld.x, umboWorld.y, umboWorld.z + 0.15),
-      tm_pars_flaccida: new THREE.Vector3(drumCenterX, 3.68, Z_HALF - 0.18),
+      tm_pars_flaccida: new THREE.Vector3(drumCenterX + sx * 0.12, 3.82, Z_HALF - 0.12),
       tm_cone_of_light: new THREE.Vector3(drumCenterX + sx * 1.9, -1.75, 5.45),
       tm_pars_tensa: new THREE.Vector3(drumCenterX - sx * 1.95, -0.85, 5.4)
     };
