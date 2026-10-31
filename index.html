@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Middle Ear 3D Room Diorama — Interactive Spatial Anatomy &amp; Creative Flight</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- 3D WebGL Viewport -->
+  <div id="canvas-container"></div>
+
+  <!-- Dynamic Projected 3D Spatial Labels -->
+  <div id="labels-layer"></div>
+
+  <!-- Center Crosshair & Quick Hover Tag -->
+  <div id="crosshair"><div id="crosshair-ring"></div></div>
+  <div id="crosshair-tag"></div>
+
+  <!-- Click-to-Lock Creative Flight Banner -->
+  <div id="flight-status-pill">
+    Click anywhere on the 3D room to enter <strong>Minecraft Creative Flight</strong> (Mouse Look + WASD + Space/Shift)
+  </div>
+
+  <!-- Top Controls HUD -->
+  <header id="top-bar">
+    <!-- Mode Switcher -->
+    <div class="hud-group">
+      <button id="btn-mode-explore" class="mode-tab active" title="Explore & Memorize Mode [Tab]">
+        Explore &amp; Memorize
+      </button>
+      <button id="btn-mode-lesson" class="mode-tab lesson-tab" title="Interactive 3D Guided Lesson & Tour [Tab]">
+        Guided Lesson
+      </button>
+      <button id="btn-mode-quiz" class="mode-tab quiz-tab" title="Fly & Pick 3D Quiz Mode [Tab]">
+        Fly &amp; Pick Quiz
+      </button>
+      <button id="btn-mode-recall" class="mode-tab recall-tab" title="Hard Free-Recall Quiz: Spotlighted 3D Structure -> Type Its Name [Tab]">
+        Type-It Quiz (Hard)
+      </button>
+    </div>
+
+    <!-- Core Spatial Toggles -->
+    <div class="hud-group">
+      <button id="btn-ear-side" class="hud-btn active-state" title="Switch Right vs Left Middle Ear [R]">
+        <span>Ear: <strong id="lbl-ear-side">Right</strong></span>
+        <span class="kbd">R</span>
+      </button>
+
+      <button id="btn-palette" class="hud-btn active-state" title="Toggle Color-Coded Walls vs Anatomical Bone Palette [C]">
+        <span>Palette: <strong id="lbl-palette">Color Box</strong></span>
+        <span class="kbd">C</span>
+      </button>
+
+      <button id="btn-xray" class="hud-btn" title="Cycle Wall Transparency to reveal Neighbors behind walls [X]">
+        <span>Walls: <strong id="lbl-xray">Solid</strong></span>
+        <span class="kbd">X</span>
+      </button>
+
+      <button id="btn-door" class="hud-btn" title="Swing Lateral Wall (Eardrum) open like a hinged door [G]">
+        <span>Lateral Door: <strong id="lbl-door">Closed</strong></span>
+        <span class="kbd">G</span>
+      </button>
+
+      <button id="btn-ossicles" class="hud-btn" title="Cycle Ossicles: Full / Ghosted / Hidden [O]">
+        <span>Ossicles: <strong id="lbl-ossicles">Full</strong></span>
+        <span class="kbd">O</span>
+      </button>
+
+      <button id="btn-labels" class="hud-btn active-state" title="Cycle 3D Floating Labels density [L]">
+        <span>Labels: <strong id="lbl-labels">Key</strong></span>
+        <span class="kbd">L</span>
+      </button>
+
+      <button id="btn-sound" class="hud-btn" title="Simulate Sound Conduction, Opposite-Phase Round Window & Acoustic Reflex [P]">
+        <span>Sound Sim: <strong id="lbl-sound">Off</strong></span>
+        <span class="kbd">P</span>
+      </button>
+
+      <button id="btn-noclip" class="hud-btn" title="Toggle Noclip (fly straight through solid walls) [V]">
+        <span>Noclip: <strong id="lbl-noclip">Off</strong></span>
+        <span class="kbd">V</span>
+      </button>
+
+      <button id="btn-drawer" class="hud-btn active-state" title="Toggle Cutaways & Structure Study Directory [M]">
+        <span>Study List</span>
+        <span class="kbd">M</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Top-Right Live 3D Anatomical Orientation Compass -->
+  <aside id="compass-panel">
+    <canvas id="compass-canvas"></canvas>
+    <div class="compass-meta">
+      <div class="compass-caption">Looking Toward</div>
+      <div id="facing-readout">MEDIAL (Labyrinthine Wall)</div>
+      <div id="zone-readout">Tympanic Cavity</div>
+    </div>
+  </aside>
+
+  <!-- Guided Lesson Panel (Interactive 7-Chapter 3D Tour + Active-Recall Checkpoints) -->
+  <section id="lesson-panel">
+    <div id="lesson-chapters-bar" class="lesson-chapters-bar"></div>
+
+    <div class="lesson-meta-row">
+      <span id="lesson-step-badge">Chapter 1 &middot; Step 1 / 20</span>
+      <span id="lesson-type-pill">3D Guided Tour</span>
+    </div>
+
+    <div id="lesson-title">Loading Lesson...</div>
+    <div id="lesson-body"></div>
+
+    <div id="lesson-hook-box"></div>
+
+    <div id="lesson-cp-controls">
+      <button id="btn-lesson-hint" class="hud-btn">
+        <span>Spatial Hint</span><span class="kbd">H</span>
+      </button>
+      <button id="btn-lesson-beacon" class="hud-btn">
+        <span>Show 3D Beacon</span><span class="kbd">B</span>
+      </button>
+    </div>
+
+    <div id="lesson-cp-hint"></div>
+    <div id="lesson-cp-feedback"></div>
+
+    <div class="lesson-nav-footer">
+      <button id="btn-lesson-prev" class="hud-btn">
+        <span class="kbd">[</span><span>&larr; Prev</span>
+      </button>
+      <button id="btn-lesson-recenter" class="hud-btn" title="Glide camera back to this step's curated angle [F]">
+        <span>Re-Center View</span><span class="kbd">F</span>
+      </button>
+      <button id="btn-lesson-next" class="hud-btn active-state">
+        <span>Next Step &rarr;</span><span class="kbd">]</span>
+      </button>
+    </div>
+    <div class="lesson-freedom-note">
+      You can still fly freely anytime with <strong>WASD + Mouse</strong> during any lesson step!
+    </div>
+  </section>
+
+  <!-- Quiz Mode Top-Center Banner -->
+  <section id="quiz-panel">
+    <div class="quiz-controls-row">
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <select id="quiz-deck-select" class="quiz-select" title="Filter structures included in Quiz"></select>
+        <select id="quiz-style-select" class="quiz-select" title="Question prompt style">
+          <option value="mixed">Mixed (Names + USMLE Clues)</option>
+          <option value="name">Structure Name Only</option>
+          <option value="clue">USMLE Function / Boundary Clue</option>
+        </select>
+        <button id="btn-quiz-restart" class="hud-btn" style="padding:4px 9px;">New Round</button>
+      </div>
+      <div class="quiz-stats">
+        <span id="quiz-q-counter">Q 1/26</span>
+        <span id="quiz-score">Score: 0</span>
+        <span id="quiz-streak">Streak: 0</span>
+      </div>
+    </div>
+
+    <div class="quiz-prompt-box">
+      <div id="quiz-instruction" class="quiz-instruction">Fly through the 3D world, aim your crosshair, and Left-Click:</div>
+      <div id="quiz-target-text">Loading...</div>
+    </div>
+
+    <div id="quiz-hint-box"></div>
+    <div id="quiz-feedback-box"></div>
+
+    <div class="quiz-actions-row">
+      <div style="display:flex; gap:6px;">
+        <button id="btn-quiz-hint" class="hud-btn">
+          <span>Hint</span><span class="kbd">H</span>
+        </button>
+        <button id="btn-quiz-beacon" class="hud-btn">
+          <span>Show 3D Beacon</span><span class="kbd">B</span>
+        </button>
+      </div>
+      <div style="font-size:11px; color:#94a3b8;">
+        Tip: <span class="kbd">X</span> X-Ray Walls &middot; <span class="kbd">V</span> Fly Through Walls
+      </div>
+      <button id="btn-quiz-next" class="hud-btn active-state">
+        <span>Skip / Next</span><span class="kbd">N</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Harder Free-Recall Quiz Panel ("Spotlight & Type" / Optional Multiple Choice) -->
+  <section id="recall-panel">
+    <div class="recall-controls-row">
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <select id="recall-deck-select" class="quiz-select" title="Filter structures &amp; sub-parts included in Recall Quiz"></select>
+        <select id="recall-format-select" class="quiz-select" title="Answer format: Rigorous Typed Recall vs 4-Option Multiple Choice">
+          <option value="typed">Typed Free-Recall (Hard)</option>
+          <option value="mcq">Multiple Choice (4 Options)</option>
+        </select>
+        <button id="btn-recall-restart" class="hud-btn" style="padding:4px 9px;">New Round</button>
+      </div>
+      <div class="quiz-stats recall-stats">
+        <span id="recall-q-counter">Q 1/60</span>
+        <span id="recall-score">Score: 0/0</span>
+        <span id="recall-streak">Streak: 0</span>
+      </div>
+    </div>
+
+    <div class="recall-prompt-box">
+      <div id="recall-instruction" class="quiz-instruction">Spotlighted 3D Structure &mdash; What Is It?</div>
+      <div id="recall-subprompt" class="recall-subprompt">
+        Inspect the pulsing 3D structure (click 3D view anytime to fly around it with <strong>WASD</strong>, then press <span class="kbd">Enter</span> or <span class="kbd">/</span> to type):
+      </div>
+    </div>
+
+    <div id="recall-typed-row" class="recall-typed-row">
+      <input
+        id="recall-input"
+        type="text"
+        placeholder="Type structure or specific part (e.g. neck of malleus, stapedius tendon)..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="btn-recall-submit" class="hud-btn recall-submit-btn">Submit &crarr;</button>
+    </div>
+
+    <div id="recall-mcq-grid" class="recall-mcq-grid" style="display:none;"></div>
+
+    <div id="recall-hint-box"></div>
+    <div id="recall-feedback-box"></div>
+
+    <div class="recall-actions-row">
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button id="btn-recall-hint" class="hud-btn" title="1st press: USMLE Clue · 2nd press: First-Letter Pattern [H]">
+          <span>Clue / Letters</span><span class="kbd">H</span>
+        </button>
+        <button id="btn-recall-recenter" class="hud-btn" title="Glide camera back to spotlighted target [F]">
+          <span>Re-Center</span><span class="kbd">F</span>
+        </button>
+        <button id="btn-recall-reveal" class="hud-btn" title="Reveal answer and clinical pearl">
+          <span>Reveal</span>
+        </button>
+      </div>
+      <button id="btn-recall-next" class="hud-btn active-state">
+        <span>Skip / Next &rarr;</span><span class="kbd">N</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Bottom-Left Live Crosshair Anatomy Inspector (Explore Mode) -->
+  <section id="inspector-card">
+    <div class="badge-row">
+      <span id="insp-cat" class="pill-badge">Walls &amp; Compartments</span>
+      <span id="insp-wall" class="pill-badge wall-badge">Medial</span>
+      <span id="insp-parent" class="pill-badge parent-badge" style="display:none;"></span>
+      <span id="insp-pin-badge" class="pill-badge pin-badge" style="display:none;">Pinned (Click / U to Unpin)</span>
+    </div>
+    <div class="inspector-header">
+      <div>
+        <div id="insp-title">Aim Crosshair at Any Structure</div>
+        <div id="insp-aka">Click view to fly &middot; Left-Click while flying to pin a structure</div>
+      </div>
+    </div>
+    <div class="insp-section">
+      <div class="insp-label">Anatomy &amp; Spatial Form</div>
+      <div id="insp-summary">
+        You are standing inside the simplified 6-walled room diorama of the Right Middle Ear (Tympanic Cavity), facing the Medial (Labyrinthine) Wall. Move with WASD + Space/Shift and look around with your mouse!
+      </div>
+    </div>
+    <div class="insp-section">
+      <div class="insp-label">Key Boundaries &amp; Relations</div>
+      <div id="insp-relations">
+        Roof = Tegmen Tympani &middot; Floor = Jugular Wall &middot; Medial = Labyrinthine Wall &middot; Lateral = Tympanic Membrane &middot; Anterior = Carotid Wall &middot; Posterior = Mastoid Wall.
+      </div>
+    </div>
+    <div class="insp-section">
+      <div class="insp-label">Innervation / Supply / Embryology</div>
+      <div id="insp-supply">
+        Press [X] at any time to turn the 6 walls translucent (X-Ray) and see the neighboring brain, jugular bulb, carotid artery, inner ear cochlea/canals, mastoid air cells, and external ear canal!
+      </div>
+    </div>
+    <div id="insp-pearl" class="insp-pearl">
+      <strong>High-Yield Function:</strong> Without the middle ear’s impedance matching (eardrum-to-stapes area ratio + ossicular lever), 99.9% of airborne acoustic energy would reflect off the high-impedance cochlear fluid!
+    </div>
+  </section>
+
+  <!-- Right Collapsible Study Drawer: Individual Wall Cutaways & Searchable Directory -->
+  <aside id="study-drawer">
+    <div class="drawer-section">
+      <div class="drawer-title">
+        <span>Individual Wall Cutaways</span>
+        <button id="btn-reset-walls" class="fly-btn">Show All</button>
+      </div>
+      <div class="wall-toggles-grid">
+        <button class="mini-toggle on" data-wall="roof">Roof</button>
+        <button class="mini-toggle on" data-wall="floor">Floor</button>
+        <button class="mini-toggle on" data-wall="medial">Medial</button>
+        <button class="mini-toggle on" data-wall="lateral">Lateral</button>
+        <button class="mini-toggle on" data-wall="anterior">Anterior</button>
+        <button class="mini-toggle on" data-wall="posterior">Posterior</button>
+      </div>
+    </div>
+
+    <div class="drawer-section">
+      <input
+        id="structure-search"
+        type="text"
+        placeholder="Search 60 structures &amp; sub-parts (e.g. neck, tendon, umbo)..."
+        autocomplete="off"
+      />
+    </div>
+
+    <div id="structure-list"></div>
+  </aside>
+
+  <!-- Bottom Camera Teleports & Flight Controls Legend -->
+  <footer id="bottom-bar">
+    <div class="preset-strip">
+      <span style="font-size:11px; font-weight:700; color:#94a3b8; padding:0 4px;">Views:</span>
+      <button class="hud-btn" data-preset="1"><span class="kbd">1</span> Room Center</button>
+      <button class="hud-btn" data-preset="2"><span class="kbd">2</span> Attic</button>
+      <button class="hud-btn" data-preset="3"><span class="kbd">3</span> Medial Wall</button>
+      <button class="hud-btn" data-preset="4"><span class="kbd">4</span> Post. &amp; Chorda</button>
+      <button class="hud-btn" data-preset="5"><span class="kbd">5</span> Ant. &amp; Eardrum</button>
+      <button class="hud-btn" data-preset="6"><span class="kbd">6</span> Coronal Cutaway</button>
+      <button class="hud-btn" data-preset="7"><span class="kbd">7</span> Exterior 3D</button>
+    </div>
+
+    <div class="controls-hint-strip">
+      <span><span class="kbd">Click</span> Look</span>
+      <span><span class="kbd">WASD</span> Fly</span>
+      <span><span class="kbd">Space</span>/<span class="kbd">Shift</span> Up/Down</span>
+      <span><span class="kbd">2&times;W</span>/<span class="kbd">Ctrl</span> Sprint</span>
+      <span><span class="kbd">Scroll</span> <strong id="lbl-speed">1.0&times;</strong></span>
+      <span><span class="kbd">Esc</span> Cursor</span>
+    </div>
+  </footer>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

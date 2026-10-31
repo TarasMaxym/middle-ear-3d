@@ -1,0 +1,1155 @@
+:root {
+  --bg-glass: rgba(11, 17, 30, 0.78);
+  --bg-glass-strong: rgba(9, 14, 26, 0.92);
+  --border-subtle: rgba(148, 163, 184, 0.18);
+  --border-accent: rgba(56, 189, 248, 0.48);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent-cyan: #38bdf8;
+  --accent-lime: #a3e635;
+  --accent-amber: #fbbf24;
+  --accent-rose: #fb7185;
+  --accent-emerald: #34d399;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #070b14;
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+#canvas-container {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  cursor: crosshair;
+}
+
+/* =========================================================================
+   3D FLOATING SPATIAL LABELS LAYER
+   ========================================================================= */
+#labels-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.spatial-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(9, 14, 26, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.12s, background 0.12s;
+  will-change: transform, opacity;
+}
+
+.spatial-label .dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.spatial-label.is-hovered {
+  background: rgba(14, 116, 144, 0.92);
+  border-color: #38bdf8;
+  color: #ffffff;
+  z-index: 10;
+}
+
+.spatial-label.is-pinned {
+  background: rgba(180, 83, 9, 0.92);
+  border-color: #fbbf24;
+  color: #ffffff;
+  z-index: 11;
+}
+
+.spatial-label.is-lesson-focus {
+  background: rgba(6, 95, 70, 0.92);
+  border-color: #34d399;
+  color: #ecfdf5;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.38);
+  z-index: 9;
+}
+
+/* =========================================================================
+   CENTER MINECRAFT-STYLE CROSSHAIR
+   ========================================================================= */
+#crosshair {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  z-index: 5;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#crosshair::before,
+#crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(248, 250, 252, 0.85);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.85);
+  transition: all 0.12s ease;
+}
+
+#crosshair::before {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+#crosshair::after {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+}
+
+#crosshair-ring {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  transition: all 0.14s ease;
+}
+
+#crosshair.has-target::before,
+#crosshair.has-target::after {
+  background: var(--accent-cyan);
+}
+
+#crosshair.has-target #crosshair-ring {
+  width: 26px;
+  height: 26px;
+  border-color: rgba(56, 189, 248, 0.75);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+#crosshair-tag {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 22px);
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(9, 14, 26, 0.86);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  font-size: 12px;
+  font-weight: 600;
+  color: #f8fafc;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+#crosshair-tag.visible {
+  opacity: 1;
+}
+
+/* =========================================================================
+   TOP HUD BAR (FLEX COLUMN WRAPPER SO QUIZ / STATUS NEVER OVERLAPS BUTTONS)
+   ========================================================================= */
+#top-bar {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  right: 168px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.hud-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.38);
+}
+
+.mode-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mode-tab:hover {
+  color: var(--text-main);
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+}
+
+.mode-tab.lesson-tab.active {
+  background: linear-gradient(135deg, #059669, #0d9488);
+  box-shadow: 0 2px 10px rgba(13, 148, 136, 0.42);
+}
+
+.mode-tab.quiz-tab.active {
+  background: linear-gradient(135deg, #d97706, #ea580c);
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.4);
+}
+
+.mode-tab.recall-tab.active {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  box-shadow: 0 2px 12px rgba(219, 39, 119, 0.45);
+}
+
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  background: rgba(30, 41, 59, 0.55);
+  color: #e2e8f0;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.14s;
+  white-space: nowrap;
+}
+
+.hud-btn:hover {
+  background: rgba(51, 65, 85, 0.85);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.hud-btn.active-state {
+  background: rgba(14, 116, 144, 0.48);
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #7dd3fc;
+}
+
+.kbd {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* =========================================================================
+   TOP-RIGHT 3D ANATOMICAL COMPASS & LOCATION CARD
+   ========================================================================= */
+#compass-panel {
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  width: 148px;
+  z-index: 10;
+  padding: 7px 8px 9px;
+  border-radius: 13px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.compass-meta {
+  width: 100%;
+  text-align: center;
+  line-height: 1.22;
+}
+
+.compass-caption {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+#facing-readout {
+  font-size: 10.8px;
+  font-weight: 700;
+  color: var(--accent-rose);
+  margin-top: 1px;
+}
+
+#zone-readout {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+/* =========================================================================
+   LOCK STATUS / CLICK-TO-FLY PROMPT PILL
+   ========================================================================= */
+#flight-status-pill {
+  position: fixed;
+  top: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  padding: 6px 15px;
+  border-radius: 999px;
+  background: rgba(14, 116, 144, 0.88);
+  border: 1px solid rgba(125, 211, 252, 0.6);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  transition: opacity 0.22s, transform 0.22s;
+}
+
+#flight-status-pill.locked {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* =========================================================================
+   BOTTOM-LEFT ANATOMY INSPECTOR CARD (EXPLORE MODE)
+   ========================================================================= */
+#inspector-card {
+  position: fixed;
+  left: 12px;
+  bottom: 54px;
+  width: 375px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  z-index: 10;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: var(--bg-glass-strong);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  transition: border-color 0.18s;
+}
+
+#inspector-card.is-pinned {
+  border-color: rgba(251, 191, 36, 0.7);
+}
+
+.inspector-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pill-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+}
+
+.pill-badge.wall-badge {
+  background: rgba(163, 230, 53, 0.14);
+  color: #bef264;
+  border-color: rgba(163, 230, 53, 0.3);
+}
+
+.pill-badge.parent-badge {
+  background: rgba(192, 132, 252, 0.16);
+  color: #e9d5ff;
+  border-color: rgba(192, 132, 252, 0.4);
+}
+
+.pill-badge.pin-badge {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+#insp-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+#insp-aka {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 9px;
+}
+
+.insp-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 12.2px;
+  line-height: 1.46;
+  color: #cbd5e1;
+}
+
+.insp-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.insp-pearl {
+  margin-top: 9px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: rgba(251, 191, 36, 0.09);
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  color: #fef3c7;
+  font-size: 11.8px;
+  line-height: 1.44;
+}
+
+/* =========================================================================
+   RIGHT DRAWER: WALL CUTAWAYS & STRUCTURE STUDY DIRECTORY
+   ========================================================================= */
+#study-drawer {
+  position: fixed;
+  top: 232px;
+  right: 12px;
+  bottom: 54px;
+  width: 292px;
+  z-index: 10;
+  border-radius: 14px;
+  background: var(--bg-glass-strong);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.48);
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+#study-drawer.collapsed {
+  transform: translateX(320px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drawer-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.drawer-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wall-toggles-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.mini-toggle {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(30, 41, 59, 0.65);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s;
+}
+
+.mini-toggle.on {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(52, 211, 153, 0.55);
+  color: #a7f3d0;
+}
+
+#structure-search {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+  font-size: 12px;
+  outline: none;
+}
+
+#structure-search:focus {
+  border-color: var(--accent-cyan);
+}
+
+#structure-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+
+.cat-heading {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin: 8px 2px 4px;
+}
+
+.struct-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.struct-item:hover {
+  background: rgba(51, 65, 85, 0.65);
+}
+
+.struct-item.active {
+  background: rgba(14, 116, 144, 0.45);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+.fly-btn {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(14, 116, 144, 0.3);
+  color: #7dd3fc;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fly-btn:hover {
+  background: rgba(14, 116, 144, 0.75);
+  color: #ffffff;
+}
+
+/* =========================================================================
+   GUIDED LESSON PANEL (BOTTOM-LEFT INTERACTIVE TOUR & CHECKPOINTS)
+   ========================================================================= */
+#lesson-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 54px;
+  width: 440px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 155px);
+  overflow-y: auto;
+  z-index: 11;
+  padding: 14px 16px;
+  border-radius: 15px;
+  background: var(--bg-glass-strong);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  display: none;
+}
+
+#lesson-panel.visible {
+  display: block;
+}
+
+#lesson-panel.is-checkpoint {
+  border-color: rgba(251, 191, 36, 0.65);
+}
+
+.lesson-chapters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.chapter-pill {
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(30, 41, 59, 0.65);
+  color: #94a3b8;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.chapter-pill:hover {
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+.chapter-pill.current {
+  background: rgba(13, 148, 136, 0.38);
+  border-color: #2dd4bf;
+  color: #ccfbf1;
+}
+
+.chapter-pill.done {
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #86efac;
+}
+
+.lesson-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  margin-bottom: 5px;
+}
+
+#lesson-step-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #5eead4;
+}
+
+#lesson-type-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.38);
+  color: #a7f3d0;
+}
+
+#lesson-type-pill.checkpoint {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(251, 191, 36, 0.55);
+  color: #fde68a;
+}
+
+#lesson-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.28;
+  margin-bottom: 7px;
+}
+
+#lesson-body {
+  font-size: 12.4px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+#lesson-hook-box {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: rgba(13, 148, 136, 0.14);
+  border: 1px solid rgba(45, 212, 191, 0.34);
+  color: #ccfbf1;
+  font-size: 11.9px;
+  line-height: 1.45;
+}
+
+#lesson-cp-controls {
+  margin-top: 9px;
+  display: none;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+#lesson-cp-hint {
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.13);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #bae6fd;
+  font-size: 11.8px;
+  display: none;
+}
+
+#lesson-cp-feedback {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.44;
+  display: none;
+}
+
+#lesson-cp-feedback.ok {
+  display: block;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  color: #d1fae5;
+}
+
+#lesson-cp-feedback.err {
+  display: block;
+  background: rgba(244, 63, 94, 0.18);
+  border: 1px solid rgba(251, 113, 133, 0.5);
+  color: #ffe4e6;
+}
+
+.lesson-nav-footer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.lesson-freedom-note {
+  margin-top: 7px;
+  font-size: 10.8px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* =========================================================================
+   QUIZ MODE PANEL (TOP-CENTER OVERLAY)
+   ========================================================================= */
+#quiz-panel {
+  position: fixed;
+  top: 94px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 550px;
+  max-width: calc(100vw - 340px);
+  z-index: 11;
+  padding: 14px 18px;
+  border-radius: 15px;
+  background: var(--bg-glass-strong);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  display: none;
+}
+
+#quiz-panel.visible {
+  display: block;
+}
+
+.quiz-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.quiz-select {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 7px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  outline: none;
+}
+
+.quiz-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fde68a;
+}
+
+.quiz-prompt-box {
+  margin-top: 10px;
+}
+
+.quiz-instruction {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+#quiz-target-text {
+  font-size: 16.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+#quiz-hint-box {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  color: #bae6fd;
+  font-size: 12px;
+  display: none;
+}
+
+#quiz-feedback-box {
+  margin-top: 9px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  font-size: 12.3px;
+  line-height: 1.42;
+  display: none;
+}
+
+#quiz-feedback-box.correct {
+  display: block;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #d1fae5;
+}
+
+#quiz-feedback-box.wrong {
+  display: block;
+  background: rgba(244, 63, 94, 0.18);
+  border: 1px solid rgba(251, 113, 133, 0.5);
+  color: #ffe4e6;
+}
+
+.quiz-actions-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* =========================================================================
+   TYPE-IT HARD RECALL QUIZ PANEL (BOTTOM-LEFT SO 3D TARGET IS WIDE OPEN)
+   ========================================================================= */
+#recall-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 54px;
+  width: 455px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 155px);
+  overflow-y: auto;
+  z-index: 11;
+  padding: 14px 16px;
+  border-radius: 15px;
+  background: var(--bg-glass-strong);
+  border: 1px solid rgba(192, 132, 252, 0.52);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.58);
+  display: none;
+}
+
+#recall-panel.visible {
+  display: block;
+}
+
+.recall-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.recall-stats {
+  color: #f5d0fe;
+}
+
+.recall-prompt-box {
+  margin-top: 10px;
+}
+
+.recall-subprompt {
+  margin-top: 3px;
+  font-size: 11.8px;
+  line-height: 1.42;
+  color: #cbd5e1;
+}
+
+.recall-typed-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+
+#recall-input {
+  flex: 1;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: 1.5px solid rgba(192, 132, 252, 0.45);
+  background: rgba(15, 23, 42, 0.92);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  user-select: text;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+#recall-input:focus {
+  border-color: #e879f9;
+  box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.22);
+}
+
+#recall-input::placeholder {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.recall-submit-btn {
+  padding: 8px 13px;
+  font-size: 12.2px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  border-color: rgba(244, 114, 182, 0.55);
+  color: #ffffff;
+}
+
+.recall-submit-btn:hover {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+  border-color: #f9a8d4;
+}
+
+.recall-mcq-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.recall-mcq-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(30, 41, 59, 0.72);
+  color: #f1f5f9;
+  font-size: 12.2px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+
+.recall-mcq-btn:hover:not(:disabled) {
+  background: rgba(88, 28, 135, 0.45);
+  border-color: rgba(216, 180, 254, 0.55);
+}
+
+.recall-mcq-btn.is-correct {
+  background: rgba(16, 185, 129, 0.26);
+  border-color: #34d399;
+  color: #ecfdf5;
+}
+
+.recall-mcq-btn.is-wrong {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: #fb7185;
+  color: #ffe4e6;
+}
+
+#recall-hint-box {
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(192, 132, 252, 0.38);
+  color: #f3e8ff;
+  font-size: 11.9px;
+  line-height: 1.44;
+  display: none;
+}
+
+.masked-letters-code {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: #f0abfc;
+}
+
+#recall-feedback-box {
+  margin-top: 9px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  font-size: 12.1px;
+  line-height: 1.45;
+  display: none;
+}
+
+#recall-feedback-box.correct {
+  display: block;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(52, 211, 153, 0.55);
+  color: #d1fae5;
+}
+
+#recall-feedback-box.almost {
+  display: block;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  color: #fef3c7;
+}
+
+#recall-feedback-box.wrong {
+  display: block;
+  background: rgba(244, 63, 94, 0.18);
+  border: 1px solid rgba(251, 113, 133, 0.5);
+  color: #ffe4e6;
+}
+
+#recall-feedback-box.revealed {
+  display: block;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #e0f2fe;
+}
+
+.recall-actions-row {
+  margin-top: 11px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================================
+   BOTTOM BAR: CAMERA PRESETS & FLIGHT CONTROLS STRIP
+   ========================================================================= */
+#bottom-bar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 10px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.preset-strip,
+.controls-hint-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 10px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.controls-hint-strip {
+  font-size: 10.8px;
+  color: var(--text-muted);
+  gap: 8px;
+  padding: 5px 10px;
+}

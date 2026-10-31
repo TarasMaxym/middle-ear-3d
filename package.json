@@ -1,0 +1,13 @@
+{
+  "name": "middle-ear-3d",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Interactive 3D Room Diorama of the Middle Ear (Tympanic Cavity) with Minecraft Creative Flight & Fly-and-Pick Quiz",
+  "scripts": {
+    "start": "python3 -m http.server 8765",
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
